@@ -1,6 +1,6 @@
 {
     "name": "dc-outdated",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "main": "./dist/lib/index.js",
     "bin": {
         "dc-outdated": "./dist/bin/dc-outdated.js"
@@ -14,7 +14,7 @@
     "scripts": {
         "build": "rimraf dist && tsc",
         "start": "node dist/bin/dc-outdated.js",
-	"version": "yarn run version:changelog && git add CHANGELOG.md",
+        "version": "yarn run version:changelog && git add CHANGELOG.md",
         "version:changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
     },
     "dependencies": {

@@ -10,7 +10,7 @@ const pkg = require('../../package.json');
 program.version(pkg.version)
     .option('--compose-file <file path>', 'Path to the docker-compose file. Defaults to ./docker-compose.yml')
     .option('--docker-config <file path>', 'Path to the docker config file, from which authentication details taken. Defaults to ~/.docker/config.json')
-    .option('--filter <string>', 'Filter string to optionally filter the list of checked-images. If specified, only images-names that contain the given search string will be checked')
+    .option('-f --filter <string>', 'Filter string to optionally filter the list of checked-images. If specified, only images-names that contain the given search string will be checked')
     .parse(process.argv);
 
 const options: Options = {

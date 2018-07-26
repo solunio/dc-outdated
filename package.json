@@ -2,6 +2,10 @@
     "name": "dc-outdated",
     "version": "0.1.0",
     "main": "./dist/lib/index.js",
+    "repository": {
+	"type": "git",
+	"url": "https://github.com/solunio/dc-outdated.git"
+    },
     "bin": {
         "dc-outdated": "./dist/bin/dc-outdated.js"
     },

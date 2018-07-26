@@ -1,0 +1,32 @@
+{
+    "name": "dc-outdated",
+    "version": "0.0.0",
+    "main": "./dist/lib/index.js",
+    "bin": {
+        "dc-outdated": "./dist/bin/dc-outdated.js"
+    },
+    "keywords": [
+        "docker",
+        "compose",
+        "semver"
+    ],
+    "license": "MIT",
+    "scripts": {
+        "build": "rimraf dist && tsc",
+        "start": "node dist/bin/dc-outdated.js"
+    },
+    "dependencies": {
+        "cli-progress": "^2.0.0",
+        "commander": "^2.16.0",
+        "easy-table": "^1.1.1",
+        "js-yaml": "^3.12.0",
+        "lodash": "^4.17.10",
+        "request": "^2.87.0",
+        "semver": "^5.5.0"
+    },
+    "devDependencies": {
+        "@types/node": "^10.5.2",
+        "rimraf": "^2.6.2",
+        "typescript": "^2.9.2"
+    }
+}

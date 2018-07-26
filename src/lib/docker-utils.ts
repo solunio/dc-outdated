@@ -5,7 +5,7 @@ import * as semver from 'semver';
 import { readFile } from './utils';
 
 
-const DEFAULT_REGISTRY_HOST = 'registry-1.docker.io';
+export const DEFAULT_REGISTRY_HOST = 'registry-1.docker.io';
 
 export interface DockerImage {
     name: string;

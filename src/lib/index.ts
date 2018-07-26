@@ -2,7 +2,7 @@ import * as cliProgress from 'cli-progress';
 import * as EasyTable from 'easy-table';
 import * as semver from 'semver';
 import { getComposeImages } from './compose-utils';
-import { Credentials, CredentialsStore, DockerImage, getLatestImageVersion, listRepositories, readDockerConfig } from './docker-utils';
+import { Credentials, CredentialsStore, DEFAULT_REGISTRY_HOST, DockerImage, getLatestImageVersion, listRepositories, readDockerConfig } from './docker-utils';
 
 
 
@@ -44,6 +44,7 @@ export interface Options {
     composeFilePath: string;
     dockerConfigPath: string;
     imagesFilter?: string;
+    excludeOfficalsAndInvalids?: boolean;
 }
 
 export interface OutdatedImage {
@@ -74,6 +75,10 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
             let fullImageName = composeImage.name;
             if (composeImage.host) fullImageName = `${composeImage.host}/${fullImageName}`;
             if (!fullImageName.includes(options.imagesFilter)) continue;
+        }
+        if(options.excludeOfficalsAndInvalids) {
+            if(composeImage.host && composeImage.host === DEFAULT_REGISTRY_HOST) continue;
+            if(!semver.valid(composeImage.tag)) continue;
         }
         filteredImages.push(composeImage);
     }

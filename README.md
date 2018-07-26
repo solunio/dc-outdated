@@ -32,11 +32,12 @@ library/influxdb       major         0.13.0           1.5.4
 
 For advanced usage, command line flags can be used to change the default behavoir of the application:
 
-| Flag                        | Description                                                                                                                                         |
-| ----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
-| --compose-file <file path>  | Path to the docker-compose file. Defaults to ./docker-compose.yml                                                                                   |
-| --docker-config <file path> | Path to the docker config file, from which authentication details taken. Defaults to ~/.docker/config.json                                          |
-| --filter <string>           | Filter string to optionally filter the list of checked-images. If specified, only images-names that contain the given search string will be checked |
+| Flag                        | Description                                                                                                                                               |
+| ----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --compose-file <file path>  | Path to the docker-compose file. Defaults to ./docker-compose.yml                                                                                         |
+| --docker-config <file path> | Path to the docker config file, from which authentication details taken. Defaults to ~/.docker/config.json                                                |
+| --filter <string>           | Filter string to optionally filter the list of checked-images. If specified, only images-names that contain the given search string will be checked       |
+| -x                          | When scanning the docker-compose.yml file, exclude all images from the offical docker registry, as well as images that do not have a semver compliant tag |
 
 
 However, for a fully detailed description of all flags that can be used, see the application's usage information (`dc-outdated --help`).

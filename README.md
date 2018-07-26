@@ -1,6 +1,8 @@
 # dc-outdated
 
-_dc-outdated_ (docker-compose-outdated) is a command line utiltiy that allows to easily check for outdated docker images in your docker-compose.yml file (just like _outdated_ command in _npm_ or _yarn_). Therefore it fetches for each image definition in your docker-compose.yml file, the latest available tag (according to the _semver_ versioning schema -> tags that do not match the semver versioning schema will be ignored) from the according docker registry. If the version (tag) of the image definition in the _docker-compose.yml_ file.
+_dc-outdated_ (docker-compose-outdated) is a command line utiltiy that allows to easily check for outdated docker images in your docker-compose.yml file (just like _outdated_ command in _npm_ or _yarn_).
+
+Therefore it fetches for each image definition in your docker-compose.yml file, the latest available tag (according to the _semver_ versioning schema -> tags that do not match the semver versioning schema will be ignored) from the according docker registry. If the version (tag) of the image definition in the _docker-compose.yml_ file.
 
 ## Prerequisites
 

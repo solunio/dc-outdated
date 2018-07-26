@@ -13,7 +13,9 @@
     "license": "MIT",
     "scripts": {
         "build": "rimraf dist && tsc",
-        "start": "node dist/bin/dc-outdated.js"
+        "start": "node dist/bin/dc-outdated.js",
+	"version": "yarn run version:changelog && git add CHANGELOG.md",
+        "version:changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
     },
     "dependencies": {
         "cli-progress": "^2.0.0",
@@ -26,6 +28,7 @@
     },
     "devDependencies": {
         "@types/node": "^10.5.2",
+        "conventional-changelog-cli": "^2.0.1",
         "rimraf": "^2.6.2",
         "typescript": "^2.9.2"
     }

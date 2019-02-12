@@ -173,14 +173,26 @@ export async function listRepositories(registryHost: string, credentialsStore: C
 }
 
 export async function getLatestImageVersion(credentialsStore: CredentialsStore, dockerImage: DockerImage): Promise<string> {
-    const tags = await listTags(credentialsStore, dockerImage);
+    const {latest} = await getImageUpdateTags(credentialsStore, dockerImage);
+    return latest;
+}
+
+export async function getImageUpdateTags(credentialsStore: CredentialsStore, dockerImage: DockerImage): Promise<{wanted: string, latest: string}> {
+    let wanted;
     let latest;
-    if (tags) {
+    const tags = await listTags(credentialsStore, dockerImage);
+    if(tags) {
         const validTags = tags.filter(semver.valid);
         validTags.sort(semver.compare);
         latest = _.last(validTags);
+
+        if(dockerImage.tag && semver.valid(dockerImage.tag)) {
+            wanted = semver.maxSatisfying(validTags, `^${dockerImage.tag}`);
+        }
     }
-    return latest;
+
+
+    return {wanted, latest}
 }
 
 export async function readDockerConfig(dockerConfigPath: string): Promise<any> {

@@ -22,18 +22,18 @@
         "version:changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
     },
     "dependencies": {
-        "cli-progress": "^2.0.0",
-        "commander": "^2.16.0",
+        "cli-progress": "^2.1.1",
+        "commander": "^2.19.0",
         "easy-table": "^1.1.1",
-        "js-yaml": "^3.12.0",
-        "lodash": "^4.17.10",
-        "request": "^2.87.0",
-        "semver": "^5.5.0"
+        "js-yaml": "^3.12.1",
+        "lodash": "^4.17.11",
+        "request": "^2.88.0",
+        "semver": "^5.6.0"
     },
     "devDependencies": {
         "@types/node": "^10.5.2",
-        "conventional-changelog-cli": "^2.0.1",
-        "rimraf": "^2.6.2",
-        "typescript": "^2.9.2"
+        "conventional-changelog-cli": "^2.0.11",
+        "rimraf": "^2.6.3",
+        "typescript": "^3.3.3"
     }
 }

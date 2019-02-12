@@ -1,12 +1,13 @@
 # dc-outdated
 
-_dc-outdated_ (docker-compose-outdated) is a command line utiltiy that allows to easily check for outdated docker images in your docker-compose.yml file (just like _outdated_ command in _npm_ or _yarn_).
+Command line utiliy for checking outdated docker-compose images.
 
-Therefore it fetches for each image definition in your docker-compose.yml file, the latest available tag (according to the _semver_ versioning schema -> tags that do not match the semver versioning schema will be ignored) from the according docker registry. If the version (tag) of the image definition in the _docker-compose.yml_ file.
+_dc-outdated_ (docker-compose-outdated) is a command line utiltiy that allows to easily check for outdated docker images in your docker-compose.yml file (just like _outdated_ command in _npm_ or _yarn_). Therefore it iterates over each image definition in your docker-compose.yml file, and fetches the latest available tag-name form the appropriate docker registry (according to the _semver_ versioning schema). Tags that do not match the semver versioning schema will be ignored.
 
 ## Prerequisites
 
-If you are using images from a private registry it is neccessary to login to that registry (_docker login_ command) before executing this application. This is required, since _dc-outdated_ reads login-credentials from the user's docker config file by default. By default, this application searches for a _docker-compose.yml_ file in the current working directory (same behavior as docker-compose utility). Hence, the directory in which the application is executed, must contain a valid **docker-compose.yml** file.
+If you are using images from a private registry it is neccessary to login to that registry (_docker login_ command) before executing this application. This is required, since _dc-outdated_ reads login-credentials from the user's docker config file by default.
+By default, this application searches for a _docker-compose.yml_ file in the current working directory (same behavior as docker-compose utility). Hence, the directory in which the application is executed, must contain a valid **docker-compose.yml** file.
 In order to make this tool work correctly it is neccessary that all images in the _docker-compose.yml_ file are specified with a semver compliant tag. Otherwise execution will fail.
 
 
@@ -20,14 +21,14 @@ cd /path/to/your/project
 dc-outdated
 ```
 
-If the compose file contains outdated docker images, the programm will list the outdated image names as well as the current and latest version of the image:
+If the compose file contains outdated docker images, the programm will list the outdated image names. Besides the image name, the application will also output the **current** image version (as specified in the _docker-compose.yml_ file), the next **wanted** version (max possible version according to the image's current version caret range) and the **latest** version of the image.
 
 ```
-Image                 Upgrade Type  Current Version  Latest Version
---------------------  ------------  ---------------  --------------
-library/rabbitmq       minor         3.6.16           3.7.7         
-library/mongo          minor         3.4.16           3.6.6         
-library/influxdb       major         0.13.0           1.5.4 
+Image                 Current    Wanted[^]    Latest
+--------------------  ---------  -----------  ------------
+library/rabbitmq      3.6.16     3.7.11       3.8.0-beta.2
+library/mongo         3.4.16     3.7.9        4.1.7
+library/influxdb      0.13.0     1.7.3        1.7.3
 ```
 
 For advanced usage, command line flags can be used to change the default behavoir of the application:
@@ -45,4 +46,4 @@ However, for a fully detailed description of all flags that can be used, see the
 ## TODOs
 
 * For now only docker compose files of version 2.x were tested. For the future docker-compose version 3 should be supported too
-* At this moment checking for outdated images on against the official docker registry is not fully working. Hence, only images from a self-hosted docker registry (v2) can be checked reliable. This will be changed in the future so that all kind of docker registries are supported. For now you will have to login to _registry-1.docker.io_ in order to verfy images from offical docker registry.
+* At this moment checking for outdated images against the official docker registry is not fully working. Hence, only images from a self-hosted docker registry (v2) can be checked reliable. This will be changed in the future so that all kind of docker registries are supported. For now you will have to login to _registry-1.docker.io_ in order to verfy images from offical docker registry.

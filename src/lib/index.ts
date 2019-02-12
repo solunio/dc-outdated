@@ -1,8 +1,17 @@
 import * as cliProgress from 'cli-progress';
 import * as EasyTable from 'easy-table';
 import * as semver from 'semver';
-import { getComposeImages } from './compose-utils';
-import { Credentials, CredentialsStore, DEFAULT_REGISTRY_HOST, DockerImage, getLatestImageVersion, listRepositories, readDockerConfig } from './docker-utils';
+import {getComposeImages} from './compose-utils';
+import {
+    Credentials,
+    CredentialsStore,
+    DEFAULT_REGISTRY_HOST,
+    DockerImage,
+    getImageUpdateTags,
+    getLatestImageVersion,
+    listRepositories,
+    readDockerConfig
+} from './docker-utils';
 
 
 
@@ -49,7 +58,7 @@ export interface Options {
 
 export interface OutdatedImage {
     image: DockerImage;
-    versionDiff: string;
+    wantedVersion: string;
     latestVersion: string;
 }
 
@@ -88,14 +97,15 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
 
     try {
         for (const image of filteredImages) {
-            const latestVersion = await getLatestImageVersion(credentials, image);
+            const {latest, wanted} = await getImageUpdateTags(credentials, image);
     
-            const versionDiff = semver.diff(image.tag, latestVersion);
-            if (versionDiff) {
+            const wantedDiff = semver.diff(image.tag, wanted);
+            const latestDiff = semver.diff(image.tag, latest);
+            if (wantedDiff || latestDiff) {
                 outdatedImages.push({
                     image,
-                    versionDiff,
-                    latestVersion
+                    wantedVersion: wanted,
+                    latestVersion: latest
                 });
             }
             progressBar.increment(1);
@@ -108,11 +118,11 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
 
     const table = new EasyTable();
 
-    outdatedImages.forEach(({image, versionDiff, latestVersion}) => {
+    outdatedImages.forEach(({image, wantedVersion, latestVersion}) => {
         table.cell('Image', image.name);
-        table.cell('Upgrade Type', versionDiff);
-        table.cell('Current Version', image.tag);
-        table.cell('Latest Version', latestVersion);
+        table.cell('Current', image.tag);
+        table.cell('Wanted[^]', wantedVersion);
+        table.cell('Latest', latestVersion);
         table.newRow();
     });
 

@@ -97,10 +97,11 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
 
     try {
         for (const image of filteredImages) {
+
             const {latest, wanted} = await getImageUpdateTags(credentials, image);
-    
-            const wantedDiff = semver.diff(image.tag, wanted);
-            const latestDiff = semver.diff(image.tag, latest);
+
+            const wantedDiff = wanted && semver.diff(image.tag, wanted);
+            const latestDiff = latest && semver.diff(image.tag, latest);
             if (wantedDiff || latestDiff) {
                 outdatedImages.push({
                     image,

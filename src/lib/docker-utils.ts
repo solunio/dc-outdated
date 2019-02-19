@@ -188,6 +188,7 @@ export async function getImageUpdateTags(credentialsStore: CredentialsStore, doc
 
         if(dockerImage.tag && semver.valid(dockerImage.tag)) {
             wanted = semver.maxSatisfying(validTags, `^${dockerImage.tag}`);
+	    if(!wanted) wanted = dockerImage.tag;
         }
     }
 

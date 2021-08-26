@@ -1,3 +1,12 @@
+# [1.1.0](https://github.com/solunio/dc-outdated/compare/v1.0.0...v1.1.0) (2021-08-26)
+
+
+### Features
+
+* add option to load docker registry credentials from cli ([2728f26](https://github.com/solunio/dc-outdated/commit/2728f26dc9527add13ea5ad7eef3d94e707e5b3a))
+
+
+
 # [1.0.0](https://github.com/solunio/dc-outdated/compare/v0.3.1...v1.0.0) (2021-08-26)
 
 

@@ -7,7 +7,7 @@ import { readFile } from './utils';
 
 async function readComposeFile(composeFilePath: string): Promise<any> {
     const data = await readFile(path.resolve(composeFilePath));
-    return yaml.safeLoad(data);
+    return yaml.load(data);
 }
 
 

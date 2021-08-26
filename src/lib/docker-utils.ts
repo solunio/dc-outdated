@@ -5,7 +5,6 @@ import { compare as semverCompare, maxSatisfying as semverMaxSatisfying, valid a
 
 import { readFile } from './utils';
 
-
 export const DEFAULT_REGISTRY_HOST = 'registry-1.docker.io';
 
 export interface DockerImage {
@@ -46,16 +45,12 @@ function parseRealm(authenticateHeader: string): { [key: string]: string } {
 }
 
 async function requestNew<T>(url: string, credentials: Credentials | undefined): Promise<T> {
+    const firstResponse = await axios.get(url, {
+        validateStatus: statusCode => (statusCode >= 200 && statusCode < 300) || statusCode === 401,
+        timeout: 60000
+    });
 
-    const firstResponse = await axios.get(
-        url,
-        {
-            validateStatus: statusCode => (statusCode >= 200 && statusCode < 300) || statusCode === 401,
-            timeout: 60000
-        },
-    );
-
-    if(firstResponse.status === 401) {
+    if (firstResponse.status === 401) {
         const attributes = parseRealm(firstResponse.headers['www-authenticate']);
 
         const realm = attributes.realm;
@@ -69,26 +64,22 @@ async function requestNew<T>(url: string, credentials: Credentials | undefined):
 
         const token = await getBearerToken(credentials, { realm, service, scope });
 
-        const secondResponse = await axios.get(
-            url,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                },
-                validateStatus: statusCode => statusCode >= 200 && statusCode < 300,
-                timeout: 60000
+        const secondResponse = await axios.get(url, {
+            headers: {
+                Authorization: `Bearer ${token}`
             },
-        );
-    
+            validateStatus: statusCode => statusCode >= 200 && statusCode < 300,
+            timeout: 60000
+        });
+
         return secondResponse.data;
     } else {
         return firstResponse.data;
     }
 }
 
-
 async function getBearerToken(credentials: Credentials, chellange: TokenChellange): Promise<string> {
-    const response = await axios.get<{token: string; expires_in: number; issued_at: string;}>(
+    const response = await axios.get<{ token: string; expires_in: number; issued_at: string }>(
         `${chellange.realm}?service=${chellange.service}&scope=${chellange.scope}`,
         {
             headers: {
@@ -96,14 +87,13 @@ async function getBearerToken(credentials: Credentials, chellange: TokenChellang
             },
             validateStatus: statusCode => statusCode >= 200 && statusCode < 300,
             timeout: 60000
-        },
+        }
     );
 
     return response.data.token;
 }
 
 export function parseDockerImage(imageString: string): DockerImage {
-
     let host: string;
     let name: string;
     let tag: string | undefined;
@@ -120,11 +110,11 @@ export function parseDockerImage(imageString: string): DockerImage {
             host = g[0];
         } else {
             name = g.join('/');
-            host = DEFAULT_REGISTRY_HOST
+            host = DEFAULT_REGISTRY_HOST;
         }
     } else {
         name = `library/${g[0]}`;
-        host = DEFAULT_REGISTRY_HOST
+        host = DEFAULT_REGISTRY_HOST;
     }
 
     const res: DockerImage = { name };
@@ -135,10 +125,9 @@ export function parseDockerImage(imageString: string): DockerImage {
     return res;
 }
 
-
 export async function listTags(credentialsStore: CredentialsStore, dockerImage: DockerImage): Promise<string[]> {
     const credentials = credentialsStore.getCredentials(dockerImage.host);
-    const result = await requestNew<{tags: string[]}>(
+    const result = await requestNew<{ tags: string[] }>(
         `https://${dockerImage.host}/v2/${dockerImage.name}/tags/list`,
         credentials
     );
@@ -146,40 +135,42 @@ export async function listTags(credentialsStore: CredentialsStore, dockerImage: 
 }
 
 export async function listRepositories(registryHost: string, credentialsStore: CredentialsStore): Promise<string[]> {
-    const result = await requestNew<{repositories: string[]}>(
+    const result = await requestNew<{ repositories: string[] }>(
         `https://${registryHost}/v2/_catalog`,
         credentialsStore.getCredentials(registryHost)
     );
     return result.repositories;
 }
 
-export async function getLatestImageVersion(credentialsStore: CredentialsStore, dockerImage: DockerImage): Promise<string | undefined> {
-    const {latest} = await getImageUpdateTags(credentialsStore, dockerImage);
+export async function getLatestImageVersion(
+    credentialsStore: CredentialsStore,
+    dockerImage: DockerImage
+): Promise<string | undefined> {
+    const { latest } = await getImageUpdateTags(credentialsStore, dockerImage);
     return latest;
 }
 
 export async function getImageUpdateTags(
     credentialsStore: CredentialsStore,
     dockerImage: DockerImage
-): Promise<{wanted: string | undefined, latest: string | undefined}> {
+): Promise<{ wanted: string | undefined; latest: string | undefined }> {
     let wanted: string | undefined;
     let latest: string | undefined;
     const tags = await listTags(credentialsStore, dockerImage);
-    if(tags) {
+    if (tags) {
         const validTags = tags.filter(tag => semverValid(tag));
         validTags.sort(semverCompare);
         latest = _last(validTags);
 
-        if(dockerImage.tag && semverValid(dockerImage.tag)) {
+        if (dockerImage.tag && semverValid(dockerImage.tag)) {
             wanted = semverMaxSatisfying(validTags, `^${dockerImage.tag}`) ?? undefined;
-	        if(!wanted) {
+            if (!wanted) {
                 wanted = dockerImage.tag;
             }
         }
     }
 
-
-    return {wanted, latest}
+    return { wanted, latest };
 }
 
 export async function readDockerConfig(dockerConfigPath: string): Promise<any> {
@@ -188,16 +179,14 @@ export async function readDockerConfig(dockerConfigPath: string): Promise<any> {
 }
 
 class DockerAuthCredentials implements Credentials {
-    constructor(private dockerAuth: any) { }
+    constructor(private dockerAuth: any) {}
 
     public getToken(): string {
         return this.dockerAuth.auth;
     }
 }
 
-
 export class CredentialsStore {
-
     private store = new Map<string, Credentials>();
 
     constructor(dockerConfig: any) {

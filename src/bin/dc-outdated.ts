@@ -14,11 +14,21 @@ interface CliOptions {
     readonly excludeOfficalsAndInvalids: boolean;
 }
 
-const program = new Command().version(pkg.version)
+const program = new Command()
+    .version(pkg.version)
     .option('--compose-file <file path>', 'Path to the docker-compose file. Defaults to ./docker-compose.yml')
-    .option('--docker-config <file path>', 'Path to the docker config file, from which authentication details taken. Defaults to ~/.docker/config.json')
-    .option('-f --filter <string>', 'Filter string to optionally filter the list of checked-images. If specified, only images-names that contain the given search string will be checked')
-    .option('-x --exclude-officals-and-invalids', 'When scanning the docker-compose.yml file, exclude all images from the offical docker registry, as well as images that do not have a semver compliant tag')
+    .option(
+        '--docker-config <file path>',
+        'Path to the docker config file, from which authentication details taken. Defaults to ~/.docker/config.json'
+    )
+    .option(
+        '-f --filter <string>',
+        'Filter string to optionally filter the list of checked-images. If specified, only images-names that contain the given search string will be checked'
+    )
+    .option(
+        '-x --exclude-officals-and-invalids',
+        'When scanning the docker-compose.yml file, exclude all images from the offical docker registry, as well as images that do not have a semver compliant tag'
+    )
     .parse(process.argv);
 
 const options: Options = {
@@ -28,14 +38,12 @@ const options: Options = {
 
 const cliOptions = program.opts<CliOptions>();
 
-if(cliOptions.composeFile) options.composeFilePath = cliOptions.composeFile;
-if(cliOptions.dockerConfig) options.dockerConfigPath = cliOptions.dockerConfig;
-if(cliOptions.filter) options.imagesFilter = cliOptions.filter;
-if(cliOptions.excludeOfficalsAndInvalids) options.excludeOfficalsAndInvalids = true;
+if (cliOptions.composeFile) options.composeFilePath = cliOptions.composeFile;
+if (cliOptions.dockerConfig) options.dockerConfigPath = cliOptions.dockerConfig;
+if (cliOptions.filter) options.imagesFilter = cliOptions.filter;
+if (cliOptions.excludeOfficalsAndInvalids) options.excludeOfficalsAndInvalids = true;
 
-
-listOutdated(options)
-    .catch(err => {
-        console.error(`There was an error: ${err.message}`);
-        process.exit(1);
-    });
+listOutdated(options).catch(err => {
+    console.error(`There was an error: ${err.message}`);
+    process.exit(1);
+});

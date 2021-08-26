@@ -11,8 +11,5 @@
         "strict": true,
         "types": ["node"]
     },
-    "files": [
-        "./src/lib/index.ts",
-        "./src/bin/dc-outdated.ts"	
-    ]
+    "files": ["./src/lib/index.ts", "./src/bin/dc-outdated.ts"]
 }

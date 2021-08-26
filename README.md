@@ -10,7 +10,6 @@ If you are using images from a private registry it is neccessary to login to tha
 By default, this application searches for a _docker-compose.yml_ file in the current working directory (same behavior as docker-compose utility). Hence, the directory in which the application is executed, must contain a valid **docker-compose.yml** file.
 In order to make this tool work correctly it is neccessary that all images in the _docker-compose.yml_ file are specified with a semver compliant tag. Otherwise execution will fail.
 
-
 ## Usage
 
 You can use this utilty by installing it globally and executing it in your project's root directory:
@@ -34,16 +33,15 @@ library/influxdb      0.13.0     1.7.3        1.7.3
 For advanced usage, command line flags can be used to change the default behavoir of the application:
 
 | Flag                        | Description                                                                                                                                               |
-| ----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | --compose-file <file path>  | Path to the docker-compose file. Defaults to ./docker-compose.yml                                                                                         |
 | --docker-config <file path> | Path to the docker config file, from which authentication details taken. Defaults to ~/.docker/config.json                                                |
 | --filter <string>           | Filter string to optionally filter the list of checked-images. If specified, only images-names that contain the given search string will be checked       |
 | -x                          | When scanning the docker-compose.yml file, exclude all images from the offical docker registry, as well as images that do not have a semver compliant tag |
 
-
 However, for a fully detailed description of all flags that can be used, see the application's usage information (`dc-outdated --help`).
 
 ## TODOs
 
-* For now only docker compose files of version 2.x were tested. For the future docker-compose version 3 should be supported too
-* At this moment checking for outdated images against the official docker registry is not fully working. Hence, only images from a self-hosted docker registry (v2) can be checked reliable. This will be changed in the future so that all kind of docker registries are supported. For now you will have to login to _registry-1.docker.io_ in order to verfy images from offical docker registry.
+-   For now only docker compose files of version 2.x were tested. For the future docker-compose version 3 should be supported too
+-   At this moment checking for outdated images against the official docker registry is not fully working. Hence, only images from a self-hosted docker registry (v2) can be checked reliable. This will be changed in the future so that all kind of docker registries are supported. For now you will have to login to _registry-1.docker.io_ in order to verfy images from offical docker registry.

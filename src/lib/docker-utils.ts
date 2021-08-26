@@ -182,7 +182,7 @@ export async function getImageUpdateTags(credentialsStore: CredentialsStore, doc
     let latest;
     const tags = await listTags(credentialsStore, dockerImage);
     if(tags) {
-        const validTags = tags.filter(semver.valid);
+        const validTags = tags.filter(tag => semver.valid(tag));
         validTags.sort(semver.compare);
         latest = _.last(validTags);
 

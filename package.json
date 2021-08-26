@@ -26,7 +26,7 @@
         "cleanup-lockfile": "yarn-deduplicate --strategy fewer"
     },
     "dependencies": {
-        "cli-progress": "^2.1.1",
+        "cli-progress": "^3.9.0",
         "commander": "^2.19.0",
         "easy-table": "^1.1.1",
         "js-yaml": "^3.12.1",
@@ -36,6 +36,7 @@
         "tslib": "^2.3.1"
     },
     "devDependencies": {
+        "@types/cli-progress": "^3.9.2",
         "@types/node": "^12.20.21",
         "conventional-changelog-cli": "^2.0.11",
         "rimraf": "^2.6.3",

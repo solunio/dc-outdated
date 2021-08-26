@@ -1,11 +1,12 @@
-import * as cliProgress from 'cli-progress';
-import * as EasyTable from 'easy-table';
-import * as semver from 'semver';
-import {getComposeImages} from './compose-utils';
+import { Bar as CliProgressBar, Presets as CliProgressBarPresets } from 'cli-progress';
+import EasyTable from 'easy-table';
+import { diff as semverDiff, valid as semverValid } from 'semver';
+
+import { getComposeImages } from './compose-utils';
 import {
     Credentials,
     CredentialsStore,
-    DEFAULT_REGISTRY_HOST,
+    DOCKER_REGISTRY_HOST,
     DockerImage,
     getImageUpdateTags,
     getLatestImageVersion,
@@ -13,20 +14,20 @@ import {
     readDockerConfig
 } from './docker-utils';
 
-
-
 // only for testing purposes
 class LoginCredentials implements Credentials {
-    constructor(private username: string, private password: string) { }
+    constructor(private username: string, private password: string) {}
 
     public getToken(): string {
-        return new Buffer(`${this.username}:${this.password}`).toString('base64');
+        return Buffer.from(`${this.username}:${this.password}`, 'utf8').toString('base64');
     }
 }
 
-
-
-async function listLatestImageVersions(registryHost: string, credentials: CredentialsStore, filter?: string): Promise<DockerImage[]> {
+async function listLatestImageVersions(
+    registryHost: string,
+    credentials: CredentialsStore,
+    filter?: string
+): Promise<DockerImage[]> {
     const repos = await listRepositories(registryHost, credentials);
     console.log(`Loaded ${repos.length} repos from registry`);
     const res: DockerImage[] = [];
@@ -48,7 +49,6 @@ async function listLatestImageVersions(registryHost: string, credentials: Creden
     return res;
 }
 
-
 export interface Options {
     composeFilePath: string;
     dockerConfigPath: string;
@@ -62,9 +62,7 @@ export interface OutdatedImage {
     latestVersion: string;
 }
 
-
 export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
-
     const config = await readDockerConfig(options.dockerConfigPath);
     const credentials = new CredentialsStore(config);
     // const res = await listLatestImageVersions('docker.solunio.com', credentials, 'common')
@@ -73,11 +71,8 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
     const composeImages = await getComposeImages(options.composeFilePath);
     // console.log('composeFile', composeFile);
 
-    
-    
-    
     const filteredImages: DockerImage[] = [];
-    
+
     for (const composeImage of composeImages) {
         if (!composeImage.tag) continue;
         if (options.imagesFilter) {
@@ -85,41 +80,44 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
             if (composeImage.host) fullImageName = `${composeImage.host}/${fullImageName}`;
             if (!fullImageName.includes(options.imagesFilter)) continue;
         }
-        if(options.excludeOfficalsAndInvalids) {
-            if(composeImage.host && composeImage.host === DEFAULT_REGISTRY_HOST) continue;
-            if(!semver.valid(composeImage.tag)) continue;
+        if (options.excludeOfficalsAndInvalids) {
+            if (composeImage.host && composeImage.host === DOCKER_REGISTRY_HOST) continue;
+            if (!semverValid(composeImage.tag)) continue;
         }
         filteredImages.push(composeImage);
     }
     const outdatedImages: OutdatedImage[] = [];
-    const progressBar = new (cliProgress.Bar)({}, cliProgress.Presets.shades_classic);
+    const progressBar = new CliProgressBar({}, CliProgressBarPresets.shades_classic);
     progressBar.start(filteredImages.length, 0);
 
     try {
         for (const image of filteredImages) {
+            const { latest, wanted } = await getImageUpdateTags(credentials, image);
 
-            const {latest, wanted} = await getImageUpdateTags(credentials, image);
-
-            const wantedDiff = wanted && semver.diff(image.tag, wanted);
-            const latestDiff = latest && semver.diff(image.tag, latest);
-            if (wantedDiff || latestDiff) {
-                outdatedImages.push({
-                    image,
-                    wantedVersion: wanted,
-                    latestVersion: latest
-                });
+            if (image.tag) {
+                const wantedDiff = wanted && semverDiff(image.tag, wanted);
+                const latestDiff = latest && semverDiff(image.tag, latest);
+                if (wantedDiff || latestDiff) {
+                    outdatedImages.push({
+                        image,
+                        wantedVersion: wanted || 'NA',
+                        latestVersion: latest || 'NA'
+                    });
+                }
+            } else {
+                console.warn(`Skipping image '${image.name}' since we cannot determine its tag!`);
             }
             progressBar.increment(1);
         }
         progressBar.stop();
-    } catch(err) {
+    } catch (err) {
         progressBar.stop();
         throw err;
     }
 
     const table = new EasyTable();
 
-    outdatedImages.forEach(({image, wantedVersion, latestVersion}) => {
+    outdatedImages.forEach(({ image, wantedVersion, latestVersion }) => {
         table.cell('Image', image.name);
         table.cell('Current', image.tag);
         table.cell('Wanted[^]', wantedVersion);
@@ -131,9 +129,5 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
 
     return outdatedImages;
 }
-
-
-
-
 
 //listOutdated().catch(err => console.log('Error during execution: ', err));

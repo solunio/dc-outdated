@@ -1,11 +1,11 @@
-import * as _ from 'lodash';
-import * as path from 'path';
-import * as request from 'request';
-import * as semver from 'semver';
+import axios from 'axios';
+import { last as _last, merge as _merge } from 'lodash';
+import { resolve as resolvePath } from 'path';
+import { compare as semverCompare, maxSatisfying as semverMaxSatisfying, valid as semverValid } from 'semver';
+
 import { readFile } from './utils';
 
-
-export const DEFAULT_REGISTRY_HOST = 'registry-1.docker.io';
+export const DOCKER_REGISTRY_HOST = 'docker.io';
 
 export interface DockerImage {
     name: string;
@@ -13,40 +13,14 @@ export interface DockerImage {
     host?: string;
 }
 
-
 export interface Credentials {
     getToken(): string;
 }
-
 
 interface TokenChellange {
     realm: string;
     service: string;
     scope: string;
-}
-
-type StatusCodeValidator = (statusCode: number) => boolean;
-
-const successStatusCodeValidator = (statusCode: number) => {
-    return statusCode >= 200 && statusCode < 300;
-}
-
-
-async function sendRequest(options: any, statusCodeValidator?: StatusCodeValidator): Promise<{ response: any, body: any }> {
-    const { body, response } = await new Promise<{ response: any, body: any }>((resolve, reject) => {
-        request(options, (err, response, body) => {
-            if (err) return reject(err);
-            return resolve({ response, body });
-        })
-    });
-
-    if (!response) throw new Error(`No response for request '${options.url}'!`);
-    if (!response.statusCode) throw new Error(`No status-code in response for request '${options.url}'!`);
-    if (statusCodeValidator && !statusCodeValidator(response.statusCode)) {
-        throw new Error(`Got invalid status-code '${response.statusCode}' for request '${options.url}'!`);
-    }
-
-    return { body, response };
 }
 
 function parseRealm(authenticateHeader: string): { [key: string]: string } {
@@ -70,13 +44,14 @@ function parseRealm(authenticateHeader: string): { [key: string]: string } {
     return chellange;
 }
 
-async function requestNew(options: any, credentials: Credentials): Promise<any> {
-    const allowUnauthenticated = (statusCode: number) => (successStatusCodeValidator(statusCode) || statusCode === 401);
+async function requestNew<T>(url: string, credentials: Credentials | undefined): Promise<T> {
+    const firstResponse = await axios.get(url, {
+        validateStatus: statusCode => (statusCode >= 200 && statusCode < 300) || statusCode === 401,
+        timeout: 60000
+    });
 
-    const { response, body } = await sendRequest(options, allowUnauthenticated);
-
-    if (response.statusCode === 401) {
-        const attributes = parseRealm(response.headers['www-authenticate']);
+    if (firstResponse.status === 401) {
+        const attributes = parseRealm(firstResponse.headers['www-authenticate']);
 
         const realm = attributes.realm;
         if (!realm) throw new Error('Invalid "www-authenticate" headers: Realm not provided!');
@@ -85,40 +60,43 @@ async function requestNew(options: any, credentials: Credentials): Promise<any> 
         const scope = attributes.scope;
         if (!scope) throw new Error('Invalid "www-authenticate" headers: Scope not provided!');
 
-        if (!credentials) throw new Error(`Credentials required but not provided for request "${options.url}"`);
+        if (!credentials) throw new Error(`Credentials required but not provided for request "${url}"`);
 
         const token = await getBearerToken(credentials, { realm, service, scope });
 
-        return sendRequest(_.merge({}, options, {
+        const secondResponse = await axios.get(url, {
             headers: {
                 Authorization: `Bearer ${token}`
-            }
-        }), successStatusCodeValidator);
+            },
+            validateStatus: statusCode => statusCode >= 200 && statusCode < 300,
+            timeout: 60000
+        });
+
+        return secondResponse.data;
     } else {
-        return { response, body };
+        return firstResponse.data;
     }
 }
 
-
 async function getBearerToken(credentials: Credentials, chellange: TokenChellange): Promise<string> {
+    const response = await axios.get<{ token: string; expires_in: number; issued_at: string }>(
+        `${chellange.realm}?service=${chellange.service}&scope=${chellange.scope}`,
+        {
+            headers: {
+                Authorization: `Basic ${credentials.getToken()}`
+            },
+            validateStatus: statusCode => statusCode >= 200 && statusCode < 300,
+            timeout: 60000
+        }
+    );
 
-    const options = {
-        method: 'GET',
-        headers: {
-            Authorization: `Basic ${credentials.getToken()}`
-        },
-        url: `${chellange.realm}?service=${chellange.service}&scope=${chellange.scope}`
-    };
-
-    const { body } = await sendRequest(options, successStatusCodeValidator);
-    return JSON.parse(body).token;
+    return response.data.token;
 }
 
 export function parseDockerImage(imageString: string): DockerImage {
-
     let host: string;
     let name: string;
-    let tag: string;
+    let tag: string | undefined;
 
     const f = imageString.split(':');
     if (f.length > 1) {
@@ -132,11 +110,11 @@ export function parseDockerImage(imageString: string): DockerImage {
             host = g[0];
         } else {
             name = g.join('/');
-            host = DEFAULT_REGISTRY_HOST
+            host = DOCKER_REGISTRY_HOST;
         }
     } else {
         name = `library/${g[0]}`;
-        host = DEFAULT_REGISTRY_HOST
+        host = DOCKER_REGISTRY_HOST;
     }
 
     const res: DockerImage = { name };
@@ -147,71 +125,68 @@ export function parseDockerImage(imageString: string): DockerImage {
     return res;
 }
 
-
 export async function listTags(credentialsStore: CredentialsStore, dockerImage: DockerImage): Promise<string[]> {
-    const defaultOptions = {
-        method: 'GET',
-        url: `https://${dockerImage.host}/v2/${dockerImage.name}/tags/list`
-    };
-
-
     const credentials = credentialsStore.getCredentials(dockerImage.host);
-    const { body } = await requestNew(defaultOptions, credentials);
-    return JSON.parse(body).tags;
+    const result = await requestNew<{ tags: string[] }>(
+        `https://${dockerImage.host}/v2/${dockerImage.name}/tags/list`,
+        credentials
+    );
+    return result.tags;
 }
 
 export async function listRepositories(registryHost: string, credentialsStore: CredentialsStore): Promise<string[]> {
-    const defaultOptions = {
-        method: 'GET',
-        url: `https://${registryHost}/v2/_catalog`
-    };
-
-
-    const { body } = await requestNew(defaultOptions, credentialsStore.getCredentials(registryHost));
-
-    return JSON.parse(body).repositories;
+    const result = await requestNew<{ repositories: string[] }>(
+        `https://${registryHost}/v2/_catalog`,
+        credentialsStore.getCredentials(registryHost)
+    );
+    return result.repositories;
 }
 
-export async function getLatestImageVersion(credentialsStore: CredentialsStore, dockerImage: DockerImage): Promise<string> {
-    const {latest} = await getImageUpdateTags(credentialsStore, dockerImage);
+export async function getLatestImageVersion(
+    credentialsStore: CredentialsStore,
+    dockerImage: DockerImage
+): Promise<string | undefined> {
+    const { latest } = await getImageUpdateTags(credentialsStore, dockerImage);
     return latest;
 }
 
-export async function getImageUpdateTags(credentialsStore: CredentialsStore, dockerImage: DockerImage): Promise<{wanted: string, latest: string}> {
-    let wanted;
-    let latest;
+export async function getImageUpdateTags(
+    credentialsStore: CredentialsStore,
+    dockerImage: DockerImage
+): Promise<{ wanted: string | undefined; latest: string | undefined }> {
+    let wanted: string | undefined;
+    let latest: string | undefined;
     const tags = await listTags(credentialsStore, dockerImage);
-    if(tags) {
-        const validTags = tags.filter(semver.valid);
-        validTags.sort(semver.compare);
-        latest = _.last(validTags);
+    if (tags) {
+        const validTags = tags.filter(tag => semverValid(tag));
+        validTags.sort(semverCompare);
+        latest = _last(validTags);
 
-        if(dockerImage.tag && semver.valid(dockerImage.tag)) {
-            wanted = semver.maxSatisfying(validTags, `^${dockerImage.tag}`);
-	    if(!wanted) wanted = dockerImage.tag;
+        if (dockerImage.tag && semverValid(dockerImage.tag)) {
+            wanted = semverMaxSatisfying(validTags, `^${dockerImage.tag}`) ?? undefined;
+            if (!wanted) {
+                wanted = dockerImage.tag;
+            }
         }
     }
 
-
-    return {wanted, latest}
+    return { wanted, latest };
 }
 
 export async function readDockerConfig(dockerConfigPath: string): Promise<any> {
-    const data = await readFile(path.resolve(dockerConfigPath));
+    const data = await readFile(resolvePath(dockerConfigPath));
     return JSON.parse(data);
 }
 
 class DockerAuthCredentials implements Credentials {
-    constructor(private dockerAuth: any) { }
+    constructor(private dockerAuth: any) {}
 
     public getToken(): string {
         return this.dockerAuth.auth;
     }
 }
 
-
 export class CredentialsStore {
-
     private store = new Map<string, Credentials>();
 
     constructor(dockerConfig: any) {
@@ -220,7 +195,7 @@ export class CredentialsStore {
         }
     }
 
-    public getCredentials(registryHost: string): Credentials {
+    public getCredentials(registryHost: string | undefined): Credentials | undefined {
         if (!registryHost) return;
         return this.store.get(registryHost);
     }

@@ -1,14 +1,15 @@
 {
     "compilerOptions": {
-	"module": "commonjs",
-	"removeComments": true,
-	"sourceMap": true,
-	"outDir": "dist",
-	"declaration": true,
-	"lib": ["ES5", "ES2015"]
+        "module": "commonjs",
+        "removeComments": true,
+        "sourceMap": true,
+        "outDir": "dist",
+        "declaration": true,
+        "target": "ES2019",
+        "importHelpers": true,
+        "esModuleInterop": true,
+        "strict": true,
+        "types": ["node"]
     },
-    "files": [
-        "./src/lib/index.ts",
-        "./src/bin/dc-outdated.ts"	
-    ]
+    "files": ["./src/lib/index.ts", "./src/bin/dc-outdated.ts"]
 }

@@ -45,7 +45,7 @@ function parseRealm(authenticateHeader: string): { [key: string]: string } {
     return chellange;
 }
 
-async function requestNew<T>(url: string, credentials: Credentials): Promise<T> {
+async function requestNew<T>(url: string, credentials: Credentials | undefined): Promise<T> {
 
     const firstResponse = await axios.get(
         url,
@@ -106,7 +106,7 @@ export function parseDockerImage(imageString: string): DockerImage {
 
     let host: string;
     let name: string;
-    let tag: string;
+    let tag: string | undefined;
 
     const f = imageString.split(':');
     if (f.length > 1) {
@@ -153,14 +153,17 @@ export async function listRepositories(registryHost: string, credentialsStore: C
     return result.repositories;
 }
 
-export async function getLatestImageVersion(credentialsStore: CredentialsStore, dockerImage: DockerImage): Promise<string> {
+export async function getLatestImageVersion(credentialsStore: CredentialsStore, dockerImage: DockerImage): Promise<string | undefined> {
     const {latest} = await getImageUpdateTags(credentialsStore, dockerImage);
     return latest;
 }
 
-export async function getImageUpdateTags(credentialsStore: CredentialsStore, dockerImage: DockerImage): Promise<{wanted: string, latest: string}> {
-    let wanted;
-    let latest;
+export async function getImageUpdateTags(
+    credentialsStore: CredentialsStore,
+    dockerImage: DockerImage
+): Promise<{wanted: string | undefined, latest: string | undefined}> {
+    let wanted: string | undefined;
+    let latest: string | undefined;
     const tags = await listTags(credentialsStore, dockerImage);
     if(tags) {
         const validTags = tags.filter(tag => semverValid(tag));
@@ -168,8 +171,10 @@ export async function getImageUpdateTags(credentialsStore: CredentialsStore, doc
         latest = _last(validTags);
 
         if(dockerImage.tag && semverValid(dockerImage.tag)) {
-            wanted = semverMaxSatisfying(validTags, `^${dockerImage.tag}`);
-	    if(!wanted) wanted = dockerImage.tag;
+            wanted = semverMaxSatisfying(validTags, `^${dockerImage.tag}`) ?? undefined;
+	        if(!wanted) {
+                wanted = dockerImage.tag;
+            }
         }
     }
 
@@ -201,7 +206,7 @@ export class CredentialsStore {
         }
     }
 
-    public getCredentials(registryHost: string): Credentials {
+    public getCredentials(registryHost: string | undefined): Credentials | undefined {
         if (!registryHost) return;
         return this.store.get(registryHost);
     }

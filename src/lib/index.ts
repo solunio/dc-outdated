@@ -101,14 +101,18 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
 
             const {latest, wanted} = await getImageUpdateTags(credentials, image);
 
-            const wantedDiff = wanted && semverDiff(image.tag, wanted);
-            const latestDiff = latest && semverDiff(image.tag, latest);
-            if (wantedDiff || latestDiff) {
-                outdatedImages.push({
-                    image,
-                    wantedVersion: wanted,
-                    latestVersion: latest
-                });
+            if(image.tag) {
+                const wantedDiff = wanted && semverDiff(image.tag, wanted);
+                const latestDiff = latest && semverDiff(image.tag, latest);
+                if (wantedDiff || latestDiff) {
+                    outdatedImages.push({
+                        image,
+                        wantedVersion: wanted || 'NA',
+                        latestVersion: latest || 'NA'
+                    });
+                }
+            } else {
+                console.warn(`Skipping image '${image.name}' since we cannot determine its tag!`);
             }
             progressBar.increment(1);
         }
@@ -132,9 +136,6 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
 
     return outdatedImages;
 }
-
-
-
 
 
 //listOutdated().catch(err => console.log('Error during execution: ', err));

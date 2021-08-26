@@ -8,6 +8,7 @@
         "target": "ES2019",
         "importHelpers": true,
         "esModuleInterop": true,
+        "strict": true,
         "types": ["node"]
     },
     "files": [

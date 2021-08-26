@@ -1,6 +1,6 @@
-import {Bar as CliProgressBar, Presets as CliProgressBarPresets} from 'cli-progress';
+import { Bar as CliProgressBar, Presets as CliProgressBarPresets } from 'cli-progress';
 import EasyTable from 'easy-table';
-import {diff as semverDiff, valid as semverValid} from 'semver';
+import { diff as semverDiff, valid as semverValid } from 'semver';
 
 import {getComposeImages} from './compose-utils';
 import {
@@ -21,7 +21,7 @@ class LoginCredentials implements Credentials {
     constructor(private username: string, private password: string) { }
 
     public getToken(): string {
-        return new Buffer(`${this.username}:${this.password}`).toString('base64');
+        return Buffer.from(`${this.username}:${this.password}`, 'utf8').toString('base64');
     }
 }
 

@@ -2,26 +2,23 @@ import { Bar as CliProgressBar, Presets as CliProgressBarPresets } from 'cli-pro
 import EasyTable from 'easy-table';
 import { diff as semverDiff, valid as semverValid } from 'semver';
 
+import { CredentialsLoader, CredentialsStore } from './credentials';
+import {
+    DockerConfig,
+    DockerConfigCredentialsLoader,
+    UserInputCredentialsLoader
+} from './credentials-loader-implementations';
 import { getComposeImages } from './compose-utils';
 import {
-    Credentials,
-    CredentialsStore,
     DOCKER_REGISTRY_HOST,
     DockerImage,
     getImageUpdateTags,
     getLatestImageVersion,
-    listRepositories,
-    readDockerConfig
+    listRepositories
 } from './docker-utils';
+import { readJsonFile } from './utils';
 
 // only for testing purposes
-class LoginCredentials implements Credentials {
-    constructor(private username: string, private password: string) {}
-
-    public getToken(): string {
-        return Buffer.from(`${this.username}:${this.password}`, 'utf8').toString('base64');
-    }
-}
 
 async function listLatestImageVersions(
     registryHost: string,
@@ -62,9 +59,64 @@ export interface OutdatedImage {
     latestVersion: string;
 }
 
+class ProgressBarWrapper {
+    private readonly progressBar: CliProgressBar;
+
+    private progressInformation: { total: number; current: number } | undefined;
+
+    constructor() {
+        this.progressBar = new CliProgressBar({}, CliProgressBarPresets.shades_classic);
+    }
+
+    public start(total: number, initialValue: number): void {
+        this.progressInformation = { total, current: initialValue };
+        this.progressBar.start(total, initialValue);
+    }
+
+    public stop(): void {
+        this.progressBar.stop();
+    }
+
+    public pause(): void {
+        this.progressBar.stop();
+    }
+
+    public resume(): void {
+        if (this.progressInformation == null) throw new Error('Progressbar was never started');
+        this.progressBar.start(this.progressInformation.total, this.progressInformation.current);
+    }
+
+    public increment(inc: number): void {
+        if (this.progressInformation == null) throw new Error('Progressbar was never started');
+        this.progressInformation = {
+            total: this.progressInformation.total,
+            current: this.progressInformation.current + inc
+        };
+
+        this.progressBar.increment(inc);
+    }
+}
+
 export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
-    const config = await readDockerConfig(options.dockerConfigPath);
-    const credentials = new CredentialsStore(config);
+    const progressBar = new ProgressBarWrapper();
+
+    const credentialsLoaders: CredentialsLoader[] = [];
+
+    try {
+        const config = await readJsonFile<DockerConfig>(options.dockerConfigPath);
+        credentialsLoaders.push(new DockerConfigCredentialsLoader(config));
+    } catch (err) {
+        console.error('Error while trying to add credentials-loader from docker config file. Skipping...', err);
+    }
+
+    credentialsLoaders.push(
+        new UserInputCredentialsLoader({
+            onPromptStart: () => progressBar.pause(),
+            onPromptStop: () => progressBar.resume()
+        })
+    );
+
+    const credentials = new CredentialsStore(credentialsLoaders);
     // const res = await listLatestImageVersions('docker.solunio.com', credentials, 'common')
     // console.log('res: ', res);
 
@@ -87,7 +139,6 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
         filteredImages.push(composeImage);
     }
     const outdatedImages: OutdatedImage[] = [];
-    const progressBar = new CliProgressBar({}, CliProgressBarPresets.shades_classic);
     progressBar.start(filteredImages.length, 0);
 
     try {

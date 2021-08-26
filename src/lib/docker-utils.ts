@@ -1,9 +1,8 @@
 import axios from 'axios';
 import { last as _last, merge as _merge } from 'lodash';
-import { resolve as resolvePath } from 'path';
 import { compare as semverCompare, maxSatisfying as semverMaxSatisfying, valid as semverValid } from 'semver';
 
-import { readFile } from './utils';
+import { Credentials, CredentialsStore } from './credentials';
 
 export const DOCKER_REGISTRY_HOST = 'docker.io';
 
@@ -11,10 +10,6 @@ export interface DockerImage {
     name: string;
     tag?: string;
     host?: string;
-}
-
-export interface Credentials {
-    getToken(): string;
 }
 
 interface TokenChellange {
@@ -126,10 +121,9 @@ export function parseDockerImage(imageString: string): DockerImage {
 }
 
 export async function listTags(credentialsStore: CredentialsStore, dockerImage: DockerImage): Promise<string[]> {
-    const credentials = credentialsStore.getCredentials(dockerImage.host);
     const result = await requestNew<{ tags: string[] }>(
         `https://${dockerImage.host}/v2/${dockerImage.name}/tags/list`,
-        credentials
+        await credentialsStore.getCredentials(dockerImage.host)
     );
     return result.tags;
 }
@@ -137,7 +131,7 @@ export async function listTags(credentialsStore: CredentialsStore, dockerImage: 
 export async function listRepositories(registryHost: string, credentialsStore: CredentialsStore): Promise<string[]> {
     const result = await requestNew<{ repositories: string[] }>(
         `https://${registryHost}/v2/_catalog`,
-        credentialsStore.getCredentials(registryHost)
+        await credentialsStore.getCredentials(registryHost)
     );
     return result.repositories;
 }
@@ -171,36 +165,4 @@ export async function getImageUpdateTags(
     }
 
     return { wanted, latest };
-}
-
-export async function readDockerConfig(dockerConfigPath: string): Promise<any> {
-    const data = await readFile(resolvePath(dockerConfigPath));
-    return JSON.parse(data);
-}
-
-class DockerAuthCredentials implements Credentials {
-    constructor(private dockerAuth: any) {}
-
-    public getToken(): string {
-        return this.dockerAuth.auth;
-    }
-}
-
-export class CredentialsStore {
-    private store = new Map<string, Credentials>();
-
-    constructor(dockerConfig: any) {
-        for (const host of Object.keys(dockerConfig.auths)) {
-            this.addCredentials(host, new DockerAuthCredentials(dockerConfig.auths[host]));
-        }
-    }
-
-    public getCredentials(registryHost: string | undefined): Credentials | undefined {
-        if (!registryHost) return;
-        return this.store.get(registryHost);
-    }
-
-    public addCredentials(registryHost: string, credentials: Credentials): void {
-        this.store.set(registryHost, credentials);
-    }
 }

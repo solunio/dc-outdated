@@ -1,6 +1,7 @@
-import * as cliProgress from 'cli-progress';
-import * as EasyTable from 'easy-table';
-import * as semver from 'semver';
+import {Bar as CliProgressBar, Presets as CliProgressBarPresets} from 'cli-progress';
+import EasyTable from 'easy-table';
+import {diff as semverDiff, valid as semverValid} from 'semver';
+
 import {getComposeImages} from './compose-utils';
 import {
     Credentials,
@@ -87,12 +88,12 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
         }
         if(options.excludeOfficalsAndInvalids) {
             if(composeImage.host && composeImage.host === DEFAULT_REGISTRY_HOST) continue;
-            if(!semver.valid(composeImage.tag)) continue;
+            if(!semverValid(composeImage.tag)) continue;
         }
         filteredImages.push(composeImage);
     }
     const outdatedImages: OutdatedImage[] = [];
-    const progressBar = new (cliProgress.Bar)({}, cliProgress.Presets.shades_classic);
+    const progressBar = new CliProgressBar({}, CliProgressBarPresets.shades_classic);
     progressBar.start(filteredImages.length, 0);
 
     try {
@@ -100,8 +101,8 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
 
             const {latest, wanted} = await getImageUpdateTags(credentials, image);
 
-            const wantedDiff = wanted && semver.diff(image.tag, wanted);
-            const latestDiff = latest && semver.diff(image.tag, latest);
+            const wantedDiff = wanted && semverDiff(image.tag, wanted);
+            const latestDiff = latest && semverDiff(image.tag, latest);
             if (wantedDiff || latestDiff) {
                 outdatedImages.push({
                     image,

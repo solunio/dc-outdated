@@ -1,7 +1,8 @@
-import * as _ from 'lodash';
-import * as path from 'path';
-import * as request from 'request';
-import * as semver from 'semver';
+import { last as _last, merge as _merge } from 'lodash';
+import { resolve as resolvePath } from 'path';
+import request from 'request';
+import { compare as semverCompare, maxSatisfying as semverMaxSatisfying, valid as semverValid } from 'semver';
+
 import { readFile } from './utils';
 
 
@@ -89,7 +90,7 @@ async function requestNew(options: any, credentials: Credentials): Promise<any> 
 
         const token = await getBearerToken(credentials, { realm, service, scope });
 
-        return sendRequest(_.merge({}, options, {
+        return sendRequest(_merge({}, options, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -182,12 +183,12 @@ export async function getImageUpdateTags(credentialsStore: CredentialsStore, doc
     let latest;
     const tags = await listTags(credentialsStore, dockerImage);
     if(tags) {
-        const validTags = tags.filter(tag => semver.valid(tag));
-        validTags.sort(semver.compare);
-        latest = _.last(validTags);
+        const validTags = tags.filter(tag => semverValid(tag));
+        validTags.sort(semverCompare);
+        latest = _last(validTags);
 
-        if(dockerImage.tag && semver.valid(dockerImage.tag)) {
-            wanted = semver.maxSatisfying(validTags, `^${dockerImage.tag}`);
+        if(dockerImage.tag && semverValid(dockerImage.tag)) {
+            wanted = semverMaxSatisfying(validTags, `^${dockerImage.tag}`);
 	    if(!wanted) wanted = dockerImage.tag;
         }
     }
@@ -197,7 +198,7 @@ export async function getImageUpdateTags(credentialsStore: CredentialsStore, doc
 }
 
 export async function readDockerConfig(dockerConfigPath: string): Promise<any> {
-    const data = await readFile(path.resolve(dockerConfigPath));
+    const data = await readFile(resolvePath(dockerConfigPath));
     return JSON.parse(data);
 }
 

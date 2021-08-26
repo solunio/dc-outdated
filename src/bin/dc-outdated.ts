@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import * as os from 'os';
-import * as path from 'path';
+import { homedir as osHomedir } from 'os';
+import { join as joinPath } from 'path';
+
 import { listOutdated, Options } from '../lib';
 
 const pkg = require('../../package.json');
@@ -22,7 +23,7 @@ const program = new Command().version(pkg.version)
 
 const options: Options = {
     composeFilePath: './docker-compose.yml',
-    dockerConfigPath: path.join(os.homedir(), '.docker', 'config.json')
+    dockerConfigPath: joinPath(osHomedir(), '.docker', 'config.json')
 };
 
 const cliOptions = program.opts<CliOptions>();

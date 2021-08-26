@@ -1,13 +1,14 @@
-import * as yaml from 'js-yaml';
-import * as path from 'path';
+import { load as loadYaml } from 'js-yaml';
+import { resolve as resolvePath } from 'path';
+
 import { DockerImage, parseDockerImage } from './docker-utils';
 import { readFile } from './utils';
 
 
 
 async function readComposeFile(composeFilePath: string): Promise<any> {
-    const data = await readFile(path.resolve(composeFilePath));
-    return yaml.load(data);
+    const data = await readFile(resolvePath(composeFilePath));
+    return loadYaml(data);
 }
 
 

@@ -6,7 +6,7 @@ import { getComposeImages } from './compose-utils';
 import {
     Credentials,
     CredentialsStore,
-    DEFAULT_REGISTRY_HOST,
+    DOCKER_REGISTRY_HOST,
     DockerImage,
     getImageUpdateTags,
     getLatestImageVersion,
@@ -81,7 +81,7 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
             if (!fullImageName.includes(options.imagesFilter)) continue;
         }
         if (options.excludeOfficalsAndInvalids) {
-            if (composeImage.host && composeImage.host === DEFAULT_REGISTRY_HOST) continue;
+            if (composeImage.host && composeImage.host === DOCKER_REGISTRY_HOST) continue;
             if (!semverValid(composeImage.tag)) continue;
         }
         filteredImages.push(composeImage);

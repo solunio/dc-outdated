@@ -5,7 +5,7 @@ import { compare as semverCompare, maxSatisfying as semverMaxSatisfying, valid a
 
 import { readFile } from './utils';
 
-export const DEFAULT_REGISTRY_HOST = 'registry-1.docker.io';
+export const DOCKER_REGISTRY_HOST = 'docker.io';
 
 export interface DockerImage {
     name: string;
@@ -110,11 +110,11 @@ export function parseDockerImage(imageString: string): DockerImage {
             host = g[0];
         } else {
             name = g.join('/');
-            host = DEFAULT_REGISTRY_HOST;
+            host = DOCKER_REGISTRY_HOST;
         }
     } else {
         name = `library/${g[0]}`;
-        host = DEFAULT_REGISTRY_HOST;
+        host = DOCKER_REGISTRY_HOST;
     }
 
     const res: DockerImage = { name };

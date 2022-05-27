@@ -4,7 +4,7 @@ import { compare as semverCompare, maxSatisfying as semverMaxSatisfying, valid a
 
 import { Credentials, CredentialsStore } from './credentials';
 
-export const DOCKER_REGISTRY_HOST = 'docker.io';
+export const DOCKER_REGISTRY_HOST = 'registry-1.docker.io';
 
 export interface DockerImage {
     name: string;

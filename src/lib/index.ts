@@ -55,7 +55,8 @@ export interface Options {
 
 export interface OutdatedImage {
     image: DockerImage;
-    wantedVersion: string;
+    wantedPatchVersion: string;
+    wantedMinorVersion: string;
     latestVersion: string;
 }
 
@@ -143,15 +144,17 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
 
     try {
         for (const image of filteredImages) {
-            const { latest, wanted } = await getImageUpdateTags(credentials, image);
+            const { latest, wantedMinor, wantedPatch } = await getImageUpdateTags(credentials, image);
 
             if (image.tag) {
-                const wantedDiff = wanted && semverDiff(image.tag, wanted);
+                const wantedPatchDiff = wantedPatch && semverDiff(image.tag, wantedPatch);
+                const wantedMinorDiff = wantedMinor && semverDiff(image.tag, wantedMinor);
                 const latestDiff = latest && semverDiff(image.tag, latest);
-                if (wantedDiff || latestDiff) {
+                if (wantedPatchDiff || wantedMinorDiff || latestDiff) {
                     outdatedImages.push({
                         image,
-                        wantedVersion: wanted || 'NA',
+                        wantedPatchVersion: wantedPatch || 'NA',
+                        wantedMinorVersion: wantedMinor || 'NA',
                         latestVersion: latest || 'NA'
                     });
                 }
@@ -168,10 +171,11 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
 
     const table = new EasyTable();
 
-    outdatedImages.forEach(({ image, wantedVersion, latestVersion }) => {
+    outdatedImages.forEach(({ image, wantedPatchVersion, wantedMinorVersion, latestVersion }) => {
         table.cell('Image', image.name);
         table.cell('Current', image.tag);
-        table.cell('Wanted[^]', wantedVersion);
+        table.cell('Wanted[~]', wantedPatchVersion);
+        table.cell('Wanted[^]', wantedMinorVersion);
         table.cell('Latest', latestVersion);
         table.newRow();
     });

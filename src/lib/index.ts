@@ -1,6 +1,8 @@
 import { Bar as CliProgressBar, Presets as CliProgressBarPresets } from 'cli-progress';
 import EasyTable from 'easy-table';
 import { diff as semverDiff, valid as semverValid } from 'semver';
+import { orderBy as _orderBy } from 'lodash';
+import { promise as queueAsPromise } from 'fastq';
 
 import { CredentialsLoader, CredentialsStore } from './credentials';
 import {
@@ -66,7 +68,7 @@ class ProgressBarWrapper {
     private progressInformation: { total: number; current: number } | undefined;
 
     constructor() {
-        this.progressBar = new CliProgressBar({}, CliProgressBarPresets.shades_classic);
+        this.progressBar = new CliProgressBar({ clearOnComplete: true }, CliProgressBarPresets.shades_classic);
     }
 
     public start(total: number, initialValue: number): void {
@@ -142,43 +144,46 @@ export async function listOutdated(options: Options): Promise<OutdatedImage[]> {
     const outdatedImages: OutdatedImage[] = [];
     progressBar.start(filteredImages.length, 0);
 
-    try {
-        for (const image of filteredImages) {
-            const { latest, wantedMinor, wantedPatch } = await getImageUpdateTags(credentials, image);
+    const queue = queueAsPromise<DockerImage>(async image => {
+        const { latest, wantedMinor, wantedPatch } = await getImageUpdateTags(credentials, image);
 
-            if (image.tag) {
-                const wantedPatchDiff = wantedPatch && semverDiff(image.tag, wantedPatch);
-                const wantedMinorDiff = wantedMinor && semverDiff(image.tag, wantedMinor);
-                const latestDiff = latest && semverDiff(image.tag, latest);
-                if (wantedPatchDiff || wantedMinorDiff || latestDiff) {
-                    outdatedImages.push({
-                        image,
-                        wantedPatchVersion: wantedPatch || 'NA',
-                        wantedMinorVersion: wantedMinor || 'NA',
-                        latestVersion: latest || 'NA'
-                    });
-                }
-            } else {
-                console.warn(`Skipping image '${image.name}' since we cannot determine its tag!`);
+        if (image.tag) {
+            const wantedPatchDiff = wantedPatch && semverDiff(image.tag, wantedPatch);
+            const wantedMinorDiff = wantedMinor && semverDiff(image.tag, wantedMinor);
+            const latestDiff = latest && semverDiff(image.tag, latest);
+            if (wantedPatchDiff || wantedMinorDiff || latestDiff) {
+                outdatedImages.push({
+                    image,
+                    wantedPatchVersion: wantedPatch || 'NA',
+                    wantedMinorVersion: wantedMinor || 'NA',
+                    latestVersion: latest || 'NA'
+                });
             }
-            progressBar.increment(1);
+        } else {
+            console.warn(`Skipping image '${image.name}' since we cannot determine its tag!`);
         }
+        progressBar.increment(1);
+    }, 10);
+
+    try {
+        filteredImages.forEach(image => queue.push(image));
+        await queue.drained();
+    } finally {
         progressBar.stop();
-    } catch (err) {
-        progressBar.stop();
-        throw err;
     }
 
     const table = new EasyTable();
 
-    outdatedImages.forEach(({ image, wantedPatchVersion, wantedMinorVersion, latestVersion }) => {
-        table.cell('Image', image.name);
-        table.cell('Current', image.tag);
-        table.cell('Wanted[~]', wantedPatchVersion);
-        table.cell('Wanted[^]', wantedMinorVersion);
-        table.cell('Latest', latestVersion);
-        table.newRow();
-    });
+    _orderBy(outdatedImages, 'image', 'asc').forEach(
+        ({ image, wantedPatchVersion, wantedMinorVersion, latestVersion }) => {
+            table.cell('Image', image.name);
+            table.cell('Current', image.tag);
+            table.cell('Wanted[~]', wantedPatchVersion);
+            table.cell('Wanted[^]', wantedMinorVersion);
+            table.cell('Latest', latestVersion);
+            table.newRow();
+        }
+    );
 
     console.log(table.toString());
 

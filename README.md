@@ -23,11 +23,11 @@ dc-outdated
 If the compose file contains outdated docker images, the programm will list the outdated image names. Besides the image name, the application will also output the **current** image version (as specified in the _docker-compose.yml_ file), the next **wanted** version (max possible version according to the image's current version caret range) and the **latest** version of the image.
 
 ```
-Image                 Current    Wanted[^]    Latest
---------------------  ---------  -----------  ------------
-library/rabbitmq      3.6.16     3.7.11       3.8.0-beta.2
-library/mongo         3.4.16     3.7.9        4.1.7
-library/influxdb      0.13.0     1.7.3        1.7.3
+Image                 Current    Wanted[~]    Wanted[^]    Latest
+--------------------  ---------  -----------  -----------  ------------
+library/rabbitmq      3.6.16     3.6.19       3.7.11       3.8.0-beta.2
+library/mongo         3.4.16     3.4.19       3.7.9        4.1.7
+library/influxdb      0.13.0     0.13.5       1.7.3        1.7.3
 ```
 
 For advanced usage, command line flags can be used to change the default behavoir of the application:

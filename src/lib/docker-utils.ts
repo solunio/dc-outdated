@@ -1,10 +1,10 @@
 import axios from 'axios';
-import { last as _last, merge as _merge } from 'lodash';
+import { last as _last } from 'lodash';
 import { compare as semverCompare, maxSatisfying as semverMaxSatisfying, valid as semverValid } from 'semver';
 
 import { Credentials, CredentialsStore } from './credentials';
 
-export const DOCKER_REGISTRY_HOST = 'docker.io';
+export const DOCKER_REGISTRY_HOST = 'registry-1.docker.io';
 
 export interface DockerImage {
     name: string;
@@ -147,8 +147,9 @@ export async function getLatestImageVersion(
 export async function getImageUpdateTags(
     credentialsStore: CredentialsStore,
     dockerImage: DockerImage
-): Promise<{ wanted: string | undefined; latest: string | undefined }> {
-    let wanted: string | undefined;
+): Promise<{ wantedPatch: string | undefined; wantedMinor: string | undefined; latest: string | undefined }> {
+    let wantedPatch: string | undefined;
+    let wantedMinor: string | undefined;
     let latest: string | undefined;
     const tags = await listTags(credentialsStore, dockerImage);
     if (tags) {
@@ -157,12 +158,16 @@ export async function getImageUpdateTags(
         latest = _last(validTags);
 
         if (dockerImage.tag && semverValid(dockerImage.tag)) {
-            wanted = semverMaxSatisfying(validTags, `^${dockerImage.tag}`) ?? undefined;
-            if (!wanted) {
-                wanted = dockerImage.tag;
+            wantedMinor = semverMaxSatisfying(validTags, `^${dockerImage.tag}`) ?? undefined;
+            if (!wantedMinor) {
+                wantedMinor = dockerImage.tag;
+            }
+            wantedPatch = semverMaxSatisfying(validTags, `~${dockerImage.tag}`) ?? undefined;
+            if (!wantedPatch) {
+                wantedPatch = dockerImage.tag;
             }
         }
     }
 
-    return { wanted, latest };
+    return { wantedPatch, wantedMinor, latest };
 }
